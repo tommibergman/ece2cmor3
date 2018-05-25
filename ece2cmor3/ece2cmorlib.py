@@ -1,7 +1,7 @@
 import cmor
 import os
 import logging
-from ece2cmor3 import cmor_source, cmor_target, cmor_task, nemo2cmor, ifs2cmor, postproc
+from ece2cmor3 import cmor_source, cmor_target, cmor_task, nemo2cmor, ifs2cmor, postproc, tm52cmor
 
 # Logger instance
 log = logging.getLogger(__name__)
@@ -175,6 +175,18 @@ def perform_nemo_tasks(datadir, expname, startdate, interval):
     if not nemo2cmor.initialize(datadir, expname, tableroot, startdate, interval):
         return
     nemo2cmor.execute(nemo_tasks)
+
+# Performs a NEMO cmorization processing:
+def perform_tm5_tasks(datadir, expname, startdate, interval):
+    global log, tasks, table_dir, prefix
+    validate_setup_settings()
+    validate_run_settings(datadir, expname)
+    tm5_tasks = [t for t in tasks if isinstance(t.source, cmor_source.tm5_source)]
+    log.info("Selected %d TM5 tasks from %d input tasks" % (len(tm5_tasks), len(tasks)))
+    tableroot = os.path.join(table_dir, prefix)
+    if not tm52cmor.initialize(datadir, expname, tableroot, startdate, interval):
+        return
+    tm52cmor.execute(tm5_tasks)
 
 
 # Validation of cmor session configuration

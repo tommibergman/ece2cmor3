@@ -14,10 +14,14 @@ json_grid_key = "grid"
 json_mask_key = "mask"
 json_masked_key = "masked"
 
-models = {"ifs": {"realms": ["atmos", "atmosChem", "land", "landIce"],
+models = {
+          "tm5": {"realms": ["atmos", "atmosChem"],
+                   parfile_key: os.path.join(os.path.dirname(__file__), "resources", "tm5par.json")},
+          "ifs": {"realms": ["atmos", "atmosChem", "land", "landIce"],
                   parfile_key: os.path.join(os.path.dirname(__file__), "resources", "ifspar.json")},
           "nemo": {"realms": ["ocean", "ocnBgChem", "seaIce"],
-                   parfile_key: os.path.join(os.path.dirname(__file__), "resources", "nemopar.json")}}
+                   parfile_key: os.path.join(os.path.dirname(__file__), "resources", "nemopar.json")}
+          }
 
 omit_vars_file_01 = os.path.join(os.path.dirname(__file__), "resources/lists-of-omitted-variables",
                                  "list-of-omitted-variables-01.xlsx")
@@ -54,7 +58,7 @@ def load_parameter_tables(**kwargs):
 
 
 # API function: loads the argument list of targets
-def load_targets(varlist, load_atm_tasks=True, load_oce_tasks=True, silent=False):
+def load_targets(varlist, load_atm_tasks=True, load_oce_tasks=True, load_che_tasks=True, silent=False):
     global log
     targetlist = []
     if isinstance(varlist, basestring):
@@ -81,7 +85,7 @@ def load_targets(varlist, load_atm_tasks=True, load_oce_tasks=True, silent=False
     else:
         log.error("Cannot create a list of cmor-targets for argument %s" % varlist)
     log.info("Found %d cmor target variables in input variable list." % len(targetlist))
-    return create_tasks(targetlist, load_atm_tasks, load_oce_tasks, silent)
+    return create_tasks(targetlist, load_atm_tasks, load_oce_tasks, load_che_tasks, silent)
 
 
 # Loads a json file containing the cmor targets.
@@ -209,9 +213,9 @@ def load_checkvars_excel(basic_ignored_excel_file):
 
 
 # Creates tasks for the given targets, using the parameter tables in the resource folder
-def create_tasks(targets, load_atm_tasks=True, load_oce_tasks=True, silent=False):
+def create_tasks(targets, load_atm_tasks=True, load_oce_tasks=True, load_tm5_tasks=True, silent=False):
     global log, ignored_vars_file, json_table_key, models, skip_tables
-    modelflags = {"ifs": load_atm_tasks, "nemo": load_oce_tasks}
+    modelflags = {"ifs": load_atm_tasks, "nemo": load_oce_tasks, "tm5": load_tm5_tasks}
 
     realmflags = {}
     for m in models:
@@ -219,7 +223,6 @@ def create_tasks(targets, load_atm_tasks=True, load_oce_tasks=True, silent=False
         for r in models[m]["realms"]:
             curval = realmflags.get(r, False)
             realmflags[r] = flag or curval  # True if any model can produce the realm
-
     params = {}
     for model in models:
         paramfile = models.get(model, {}).get(parfile_key, "")
@@ -306,7 +309,7 @@ def create_tasks(targets, load_atm_tasks=True, load_oce_tasks=True, silent=False
                                      + parmatch.get(cmor_source.expression_key, None)
         target.comment_author = 'automatic'
         loadedtargets.append(target)
-    log.info("Created %d ece2cmor tasks from input variable list." % len(loadedtargets))
+    log.info("Created    %d ece2cmor tasks from input variable list." % len(loadedtargets))
     for par in params["ifs"]:
         if json_mask_key in par:
             name = par[json_mask_key]
@@ -378,10 +381,14 @@ def create_cmor_source(pardict, tag):
         return None
     if tag == "ifs":
         return cmor_source.ifs_source.read(expr if expr is not None else src)
+    elif tag == "tm5":
+        grid = "lonlat"
+        return cmor_source.tm5_source(src, cmor_source.tm5_grid.index(grid))
     elif tag == "nemo":
         grid = pardict.get(json_grid_key, None)
         if not (grid in cmor_source.nemo_grid):
             log.error("Could not find a grid value in the nemo parameter table for %s" % src)
             return None
+        print 'soruce',grid
         return cmor_source.nemo_source(src, cmor_source.nemo_grid.index(grid))
     return None

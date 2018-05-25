@@ -190,3 +190,31 @@ class nemo_source(cmor_source):
 
     def var(self):
         return self.var_id
+
+# TM5 grid type enumerable.
+tm5_grid = cmor_utils.cmor_enum(["lonlat","scalar"])
+
+# tm5 depth axes dictionary.
+tm5_depth_axes = {tm5_grid.lonlat:"hyb"}
+
+#initial copy
+class tm5_source(cmor_source):
+
+    def __init__(self,var_id_,grid_id_,dims_=-1):
+        self.var_id = var_id_
+        self.spatial_dims = dims_
+        self.grid_ = grid_id_
+        #self.i_id_ =   None
+        #self.j_id_ =   None
+        
+
+    def grid(self):
+      
+        return tm5_grid[self.grid_]
+
+ # Returns the model component.
+    def model_component(self):
+        return "tm5"
+
+    def var(self):
+        return self.var_id

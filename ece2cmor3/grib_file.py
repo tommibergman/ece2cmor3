@@ -1,7 +1,7 @@
 import os
 import csv
 
-import gribapi
+#import gribapi
 
 # Vertical axes codes
 surface_level_code = 1

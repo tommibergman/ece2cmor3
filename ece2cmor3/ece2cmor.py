@@ -49,11 +49,16 @@ def main(args=None):
                         help="Run ece2cmor3 exclusively for atmosphere data")
     parser.add_argument("-o", "--oce", action="store_true", default=False,
                         help="Run ece2cmor3 exclusively for ocean data")
+    parser.add_argument("-c", "--che", action="store_true", default=False,
+                        help="Run ece2cmor3 exclusively for chemistry data")
     parser.add_argument("--nomask", action="store_true", default=False, help="Disable masking of fields")
     parser.add_argument("--filter", action="store_true", default=False, help="Automatic filtering of grib files")
     parser.add_argument("--ifspar", metavar="FILE.json", type=str,
                         default=taskloader.models["ifs"][taskloader.parfile_key],
                         help="IFS parameter file (optional)")
+    parser.add_argument("--tm5par", metavar="FILE.json", type=str,
+                        default=taskloader.models["tm5"][taskloader.parfile_key],
+                        help="TM5 parameter file (optional)")
     parser.add_argument("--nemopar", metavar="FILE.json", type=str,
                         default=taskloader.models["nemo"][taskloader.parfile_key],
                         help="Nemo parameter file (optional")
@@ -69,12 +74,14 @@ def main(args=None):
 
     # Fix conflicting flags
     procatmos, prococean = not args.oce, not args.atm
+    procchem = args.che
     if not procatmos and not prococean:
         procatmos, prococean = True, True
-
+    if procchem:
+        procatmos, prococean = False,False
     # Load the variables as task targets:
-    taskloader.load_parameter_tables(ifs=args.ifspar, nemo=args.nemopar)
-    taskloader.load_targets(args.vars, load_atm_tasks=procatmos, load_oce_tasks=prococean)
+    taskloader.load_parameter_tables(ifs=args.ifspar, nemo=args.nemopar, tm5=args.tm5par)
+    taskloader.load_targets(args.vars, load_atm_tasks=procatmos, load_oce_tasks=prococean, load_che_tasks=procchem)
 
     startdate = dateutil.parser.parse(args.date)
     length = dateutil.relativedelta.relativedelta(months=1)
@@ -89,6 +96,9 @@ def main(args=None):
                                       maxsizegb=args.tmpsize)
     if prococean:
         ece2cmorlib.perform_nemo_tasks(args.datadir, args.exp, startdate, length)
+
+    if procchem:
+        ece2cmorlib.perform_tm5_tasks(args.datadir, args.exp, startdate, length)
 
     ece2cmorlib.finalize()
 

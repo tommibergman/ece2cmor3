@@ -290,7 +290,7 @@ def create_grids():
         if(len(gridfiles) != 0):
             grid = read_grid(gridfiles[0])
             grid_ids_[g] = write_grid(grid)
-
+          
 
 # Reads a particular NEMO grid from the given input file.
 def read_grid(ncfile):
